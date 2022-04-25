@@ -1,17 +1,240 @@
 <template>
-  <q-page class="flex flex-center">
-    <img
-      alt="Quasar logo"
-      src="~assets/quasar-logo-vertical.svg"
-      style="width: 200px; height: 200px"
-    />
+  <q-page class="flex column">
+    <div class="col q-pt-lg q-px-md text-center">
+      <div class="q-pa-md" style="max-width: 350px">
+        <q-input
+          filled
+          type="number"
+          v-model="max_minutes"
+          label="Target max minutes away *"
+          lazy-rules
+          :rules="[
+            (val) => (val !== null && val !== '') || 'Enter number of minutes',
+            (val) => (val > 0 && val < 240) || 'Must be less than 4 hours',
+          ]"
+        />
+
+        <br />
+
+        <q-input
+          filled
+          type="number"
+          v-model="num_reps"
+          label="Number of reps (not including warmup) *"
+          lazy-rules
+          :rules="[
+            (val) => (val !== null && val !== '') || 'Enter number of reps',
+            (val) => (val > 0 && val < 15) || 'Must be less than 15',
+          ]"
+        />
+
+        <br />
+
+        <div>
+          <q-btn
+            @click="onSubmit"
+            label="Submit"
+            type="submit"
+            color="primary"
+          />
+          <q-btn
+            v-if="stage && !paused"
+            @click="onPause"
+            label="Pause"
+            type="reset"
+            color="primary"
+            flat
+            class="q-ml-sm"
+          />
+          <q-btn
+            v-if="stage && paused"
+            @click="onResume"
+            label="Resume"
+            type="reset"
+            color="primary"
+            flat
+            class="q-ml-sm"
+          />
+        </div>
+
+        <br />
+        <br />
+        <template v-if="stage">
+          <div class="col text-center">
+            <div class="text-h4 text-weight-light">{{ stage }}</div>
+          </div>
+
+          <br />
+
+          <q-circular-progress
+            :min="0"
+            :max="max_seconds"
+            show-value
+            class="text-light-blue q-ma-md"
+            :value="time_away"
+            size="200px"
+            color="light-blue"
+          />
+
+          <br />
+          <br />
+          <div class="col text-center text-white">
+            <div class="text-h4">
+              {{ intervals }}
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
   </q-page>
 </template>
 
 <script>
-import { defineComponent } from "vue";
+import { useQuasar } from "quasar";
+import { ref } from "vue";
 
-export default defineComponent({
-  name: "PageIndex",
-});
+export default {
+  data() {
+    return {
+      max_minutes: ref(1),
+      num_reps: ref(8),
+
+      time_away: null,
+      max_seconds: ref(5),
+      stage: null,
+      paused: ref(false),
+      intervals: null,
+    };
+  },
+  methods: {
+    // When submit button is clicked
+    onSubmit() {
+      this.stage = "Stand up";
+      var audio = new Audio("standup.mp3");
+      audio.play();
+
+      this.max_seconds = this.max_minutes * 60;
+
+      // Calculate time intervals
+      const standup = 10;
+      var times = [standup, 5, 30, standup, 15, 30]; // Standup, away, relax. Standup, away, relax.
+      this.intervals = [5, 15];
+      var num_unique_reps = this.num_reps / 2;
+      var step = Math.floor(this.max_seconds / num_unique_reps);
+      for (let i = 0; i < num_unique_reps; i++) {
+        var target = step * (i + 1); // Average target for 2 reps
+        var minimum = Math.floor(step / 4);
+        var maximum = Math.floor(step / 2);
+        var random =
+          Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
+        times.push(standup);
+        times.push(target + random);
+        this.intervals.push(target + random);
+        var relax = Math.floor(Math.random() * (45 - 30 + 1)) + 30;
+        times.push(relax);
+        times.push(standup);
+        times.push(target - random);
+        this.intervals.push(target - random);
+        var relax = Math.floor(Math.random() * (45 - 30 + 1)) + 30;
+        times.push(relax);
+      }
+
+      console.log(times);
+
+      // Set up next circular progress
+      this.time_away = this.max_seconds;
+
+      // List of time intervals to leave
+      var i = 0;
+      this.time_away = times[0];
+      this.max_seconds = this.time_away;
+
+      // Begin the loop
+
+      // Timer loop
+      var interval = setInterval(() => {
+        if (!this.paused) {
+          console.log(
+            "inside interval " +
+              this.time_away +
+              " " +
+              this.max_seconds +
+              " " +
+              this.stage +
+              " " +
+              this.paused
+          );
+          this.time_away--;
+          // Play sounds if you are away
+          if (this.stage == "Leave") {
+            if (this.time_away == 10) {
+              var audio = new Audio("ten.mp3");
+              audio.play();
+            }
+            if (this.time_away == 5) {
+              var audio = new Audio("five.mp3");
+              audio.play();
+            }
+            if (this.time_away == 4) {
+              var audio = new Audio("four.mp3");
+              audio.play();
+            }
+            if (this.time_away == 3) {
+              var audio = new Audio("three.mp3");
+              audio.play();
+            }
+            if (this.time_away == 2) {
+              var audio = new Audio("two.mp3");
+              audio.play();
+            }
+            if (this.time_away == 1) {
+              var audio = new Audio("one.mp3");
+              audio.play();
+            }
+            if (this.time_away == 0) {
+              var audio = new Audio("return.mp3");
+              audio.play();
+            }
+          }
+
+          // If time is up on the counter, move to next item in time array
+          if (this.time_away == -1) {
+            console.log(this.stage);
+            i++;
+            // Move on to the next stage
+            if (this.stage == "Stand up") {
+              this.stage = "Leave";
+              var audio = new Audio("begin.mp3");
+              audio.play();
+            } else if (this.stage == "Leave") {
+              this.stage = "Relax";
+            } else if (this.stage == "Relax") {
+              this.stage = "Stand up";
+              var audio = new Audio("standup.mp3");
+              audio.play();
+            }
+            if (i == times.length) {
+              clearInterval(interval);
+            }
+            this.time_away = times[i];
+            this.max_seconds = this.time_away;
+          }
+        }
+      }, 1000);
+    },
+
+    onPause() {
+      this.paused = true;
+    },
+    onResume() {
+      this.paused = false;
+    },
+  },
+};
 </script>
+
+<style lang="sass">
+.q-page
+  background: linear-gradient(to top, #74ebd5, #acb6e5)
+.timer-form
+</style>
