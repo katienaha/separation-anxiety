@@ -109,7 +109,7 @@ export default {
   methods: {
     // When submit button is clicked
     onSubmit() {
-      this.stage = "Stand up";
+      this.stage = "Stand up and leave";
       var audio = new Audio("standup.mp3");
       audio.play();
 
@@ -166,7 +166,7 @@ export default {
           );
           this.time_away--;
           // Play sounds if you are away
-          if (this.stage == "Leave") {
+          if (this.stage == "Wait outside") {
             if (this.time_away == 10) {
               var audio = new Audio("ten.mp3");
               audio.play();
@@ -202,14 +202,14 @@ export default {
             console.log(this.stage);
             i++;
             // Move on to the next stage
-            if (this.stage == "Stand up") {
-              this.stage = "Leave";
+            if (this.stage == "Stand up and leave") {
+              this.stage = "Wait outside";
               var audio = new Audio("begin.mp3");
               audio.play();
-            } else if (this.stage == "Leave") {
-              this.stage = "Relax";
-            } else if (this.stage == "Relax") {
-              this.stage = "Stand up";
+            } else if (this.stage == "Wait outside") {
+              this.stage = "Return and relax";
+            } else if (this.stage == "Return and relax") {
+              this.stage = "Stand up and leave";
               var audio = new Audio("standup.mp3");
               audio.play();
             }
