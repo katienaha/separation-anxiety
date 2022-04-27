@@ -1,7 +1,7 @@
 <template>
   <q-page class="flex column">
     <div class="col q-pt-lg q-px-md text-center">
-      <div class="q-pa-md" style="max-width: 200px">
+      <div class="q-pa-md absolute-center">
         <template v-if="!stage">
           <q-input
             rounded
@@ -49,7 +49,7 @@
           </div>
         </template>
       </div>
-      <div class="q-pa-md" style="max-width: 350px">
+      <div class="q-pa-md absolute-center">
         <template v-if="stage">
           <div class="col text-center">
             <div class="text-h4 text-weight-light">{{ stage }}</div>
