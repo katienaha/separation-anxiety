@@ -2,63 +2,53 @@
   <q-page class="flex column">
     <div class="col q-pt-lg q-px-md text-center">
       <div class="q-pa-md" style="max-width: 350px">
-        <q-input
-          filled
-          type="number"
-          v-model="max_minutes"
-          label="Target max minutes away *"
-          lazy-rules
-          :rules="[
-            (val) => (val !== null && val !== '') || 'Enter number of minutes',
-            (val) => (val > 0 && val < 240) || 'Must be less than 4 hours',
-          ]"
-        />
-
-        <br />
-
-        <q-input
-          filled
-          type="number"
-          v-model="num_reps"
-          label="Number of reps (not including warmup) *"
-          lazy-rules
-          :rules="[
-            (val) => (val !== null && val !== '') || 'Enter number of reps',
-            (val) => (val > 0 && val < 15) || 'Must be less than 15',
-          ]"
-        />
-
-        <br />
-
-        <div>
-          <q-btn
-            @click="onSubmit"
-            label="Submit"
-            type="submit"
-            color="primary"
+        <template v-if="!stage">
+          <q-input
+            rounded
+            standout
+            suffix="minutes"
+            type="number"
+            v-model="max_minutes"
+            v-if="!stage"
+            label="Target time away *"
+            lazy-rules
+            :rules="[
+              (val) =>
+                (val !== null && val !== '') || 'Enter number of minutes',
+              (val) => (val > 0 && val < 240) || 'Must be less than 4 hours',
+            ]"
           />
-          <q-btn
-            v-if="stage && !paused"
-            @click="onPause"
-            label="Pause"
-            type="reset"
-            color="primary"
-            flat
-            class="q-ml-sm"
-          />
-          <q-btn
-            v-if="stage && paused"
-            @click="onResume"
-            label="Resume"
-            type="reset"
-            color="primary"
-            flat
-            class="q-ml-sm"
-          />
-        </div>
 
-        <br />
-        <br />
+          <br />
+
+          <q-input
+            rounded
+            standout
+            type="number"
+            suffix="reps"
+            v-model="num_reps"
+            v-if="!stage"
+            label="Number of reps *"
+            lazy-rules
+            :rules="[
+              (val) => (val !== null && val !== '') || 'Enter number of reps',
+              (val) => (val > 0 && val < 15) || 'Must be less than 15',
+            ]"
+          />
+
+          <br />
+
+          <div>
+            <q-btn
+              v-if="!stage"
+              @click="onSubmit"
+              label="Submit"
+              type="submit"
+              color="primary"
+            />
+          </div>
+        </template>
+
         <template v-if="stage">
           <div class="col text-center">
             <div class="text-h4 text-weight-light">{{ stage }}</div>
@@ -78,10 +68,54 @@
 
           <br />
           <br />
-          <div class="col text-center text-white">
-            <div class="text-h4">
-              {{ intervals }}
+
+          <div>
+            <q-btn
+              v-if="!paused"
+              @click="onPause"
+              label="Pause"
+              type="submit"
+              color="primary"
+              class="q-ml-sm"
+            />
+            <q-btn
+              v-if="paused"
+              @click="onResume"
+              label="Resume"
+              type="submit"
+              color="primary"
+              class="q-ml-sm"
+            />
+
+            <q-btn
+              @click="onReset"
+              label="Reset"
+              type="reset"
+              color="primary"
+              flat
+              class="q-ml-sm"
+            />
+          </div>
+
+          <br />
+          <br />
+
+          <div class="col text-center">
+            <div class="text-h5">
+              Current interval: {{ current }}
+              <span v-if="current">seconds</span>
             </div>
+          </div>
+
+          <br />
+          <div class="col text-center">
+            <div class="text-h5">Upcoming intervals: {{ upcoming }}</div>
+          </div>
+
+          <br />
+
+          <div class="col text-center">
+            <div class="text-h5">Finished intervals: {{ done }}</div>
           </div>
         </template>
       </div>
@@ -104,6 +138,9 @@ export default {
       stage: null,
       paused: ref(false),
       intervals: null,
+      done: null,
+      upcoming: null,
+      current: null,
     };
   },
   methods: {
@@ -139,13 +176,15 @@ export default {
         times.push(relax);
       }
 
-      console.log(times);
-
       // Set up next circular progress
       this.time_away = this.max_seconds;
+      this.upcoming = this.intervals.slice(1, -1).join(", ");
+      this.current = this.intervals[0];
 
       // List of time intervals to leave
-      var i = 0;
+      var times_counter = 0;
+      var interval_counter = 0;
+
       this.time_away = times[0];
       this.max_seconds = this.time_away;
 
@@ -154,16 +193,6 @@ export default {
       // Timer loop
       var interval = setInterval(() => {
         if (!this.paused) {
-          console.log(
-            "inside interval " +
-              this.time_away +
-              " " +
-              this.max_seconds +
-              " " +
-              this.stage +
-              " " +
-              this.paused
-          );
           this.time_away--;
           // Play sounds if you are away
           if (this.stage == "Wait outside") {
@@ -199,24 +228,39 @@ export default {
 
           // If time is up on the counter, move to next item in time array
           if (this.time_away == -1) {
-            console.log(this.stage);
-            i++;
-            // Move on to the next stage
+            times_counter++;
+            // Finishing stand up, starting to wait
             if (this.stage == "Stand up and leave") {
               this.stage = "Wait outside";
+
               var audio = new Audio("begin.mp3");
               audio.play();
-            } else if (this.stage == "Wait outside") {
+            } // Finishing waiting, starting to return
+            else if (this.stage == "Wait outside") {
               this.stage = "Return and relax";
-            } else if (this.stage == "Return and relax") {
+
+              interval_counter++;
+              this.current = null;
+              this.done = this.intervals.slice(0, interval_counter).join(", ");
+              this.upcoming = this.intervals
+                .slice(interval_counter, -1)
+                .join(", ");
+            } // Finishing return and relax, starting to stand up
+            else if (this.stage == "Return and relax") {
+              this.current = this.intervals[interval_counter];
+              this.upcoming = this.intervals
+                .slice(interval_counter + 1, -1)
+                .join(", ");
               this.stage = "Stand up and leave";
+
               var audio = new Audio("standup.mp3");
               audio.play();
             }
-            if (i == times.length) {
+            if (times_counter == times.length) {
               clearInterval(interval);
             }
-            this.time_away = times[i];
+            this.time_away = times[times_counter];
+
             this.max_seconds = this.time_away;
           }
         }
@@ -228,6 +272,9 @@ export default {
     },
     onResume() {
       this.paused = false;
+    },
+    onReset() {
+      location.reload();
     },
   },
 };
