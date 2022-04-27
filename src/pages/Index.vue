@@ -101,7 +101,7 @@
           <br />
 
           <div class="col text-center">
-            <div class="text-h5">
+            <div class="text-h5 text-weight-light">
               Current interval: {{ current }}
               <span v-if="current">seconds</span>
             </div>
@@ -109,13 +109,20 @@
 
           <br />
           <div class="col text-center">
-            <div class="text-h5">Upcoming intervals: {{ upcoming }}</div>
+            <div class="text-h5 text-weight-light">
+              Upcoming intervals:
+              <br />
+              {{ upcoming }}
+            </div>
           </div>
 
           <br />
 
           <div class="col text-center">
-            <div class="text-h5">Finished intervals: {{ done }}</div>
+            <div class="text-h5 text-weight-light">
+              Finished intervals:
+              <br />{{ done }}
+            </div>
           </div>
         </template>
       </div>
