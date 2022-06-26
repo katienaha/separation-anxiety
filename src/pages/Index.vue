@@ -162,7 +162,7 @@ export default {
 
       // Calculate time intervals
       const standup = 10;
-      var times = [standup, 5, 3, standup, 15, 3]; // Standup, away, relax. Standup, away, relax.
+      var times = [standup, 5, 30, standup, 15, 30]; // Standup, away, relax. Standup, away, relax.
       this.intervals = [5, 15];
       var num_unique_reps =
         (Math.floor(this.total_time - this.max_minutes - 2.5) * 60) / 75;
