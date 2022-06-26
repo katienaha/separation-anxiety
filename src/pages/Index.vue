@@ -25,14 +25,14 @@
             rounded
             standout
             type="number"
-            suffix="reps"
-            v-model="num_reps"
+            suffix="minutes"
+            v-model="total_time"
             v-if="!stage"
-            label="Number of reps *"
+            label="Total training time"
             lazy-rules
             :rules="[
-              (val) => (val !== null && val !== '') || 'Enter number of reps',
-              (val) => (val > 0 && val < 15) || 'Must be less than 15',
+              (val) =>
+                (val !== null && val !== '') || 'Enter total training time',
             ]"
           />
 
@@ -139,7 +139,7 @@ export default {
   data() {
     return {
       max_minutes: ref(1),
-      num_reps: ref(8),
+      total_time: ref(20),
 
       time_away: null,
       max_seconds: ref(5),
@@ -162,31 +162,34 @@ export default {
 
       // Calculate time intervals
       const standup = 10;
-      var times = [standup, 5, 30, standup, 15, 30]; // Standup, away, relax. Standup, away, relax.
+      var times = [standup, 5, 3, standup, 15, 3]; // Standup, away, relax. Standup, away, relax.
       this.intervals = [5, 15];
-      var num_unique_reps = this.num_reps / 2;
-      var step = Math.floor(this.max_seconds / num_unique_reps);
+      var num_unique_reps =
+        (Math.floor(this.total_time - this.max_minutes - 2.5) * 60) / 75;
+
       for (let i = 0; i < num_unique_reps; i++) {
-        var target = step * (i + 1); // Average target for 2 reps
-        var minimum = Math.floor(step / 4);
-        var maximum = Math.floor(step / 2);
+        var minimum = 20;
+        var maximum = 40;
         var random =
           Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
         times.push(standup);
-        times.push(target + random);
-        this.intervals.push(target + random);
-        var relax = Math.floor(Math.random() * (45 - 30 + 1)) + 30;
-        times.push(relax);
-        times.push(standup);
-        times.push(target - random);
-        this.intervals.push(target - random);
+        times.push(random);
+        this.intervals.push(random);
         var relax = Math.floor(Math.random() * (45 - 30 + 1)) + 30;
         times.push(relax);
       }
 
+      // Final rep with target time
+      times.push(standup);
+      times.push(this.max_minutes * 60);
+      this.intervals.push(this.max_minutes * 60);
+
+      console.log(times);
+      console.log(eval(times.join("+")) / 60);
+
       // Set up next circular progress
       this.time_away = this.max_seconds;
-      this.upcoming = this.intervals.slice(1, -1).join(", ");
+      this.upcoming = this.intervals.slice(1).join(", ");
       this.current = this.intervals[0];
 
       // List of time intervals to leave
@@ -250,14 +253,12 @@ export default {
               interval_counter++;
               this.current = null;
               this.done = this.intervals.slice(0, interval_counter).join(", ");
-              this.upcoming = this.intervals
-                .slice(interval_counter, -1)
-                .join(", ");
+              this.upcoming = this.intervals.slice(interval_counter).join(", ");
             } // Finishing return and relax, starting to stand up
             else if (this.stage == "Return and relax") {
               this.current = this.intervals[interval_counter];
               this.upcoming = this.intervals
-                .slice(interval_counter + 1, -1)
+                .slice(interval_counter + 1)
                 .join(", ");
               this.stage = "Stand up and leave";
 
@@ -265,6 +266,9 @@ export default {
               audio.play();
             }
             if (times_counter == times.length) {
+              this.stage = "Done";
+              var audio = new Audio("g2g.mp3");
+              audio.play();
               clearInterval(interval);
             }
             this.time_away = times[times_counter];
